@@ -89,12 +89,13 @@ func process_updates() {
 			// todo: change to regex match instead full string match
 			var response string
 			switch msg.Message.Text {
-				case "/taunt":
-					response = Taunt(msg.Message.Text)
 				case "/shrug":
 					response = "¯\\_(ツ)_/¯"
+				// case "/taunt":
 				default:
-					fmt.Println(":: ignore")
+					response = Taunt(msg.Message.Text)
+				// default:
+				// 	fmt.Println(":: ignore")
 			}
 			if response != "" {
 				fmt.Println("Sending response: ", response)

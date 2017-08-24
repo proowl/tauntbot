@@ -100,7 +100,7 @@ func adverb() string {
 func taunt(depth int) string {
 	rand_num := rand.Int()
 	divide_by := 3
-	if depth > 2 {
+	if depth > 0 {
 		divide_by = 2
 	}
 	switch (rand_num % divide_by) {
@@ -109,7 +109,7 @@ func taunt(depth int) string {
 	case 1:
 		return noun() + "!"
 	case 2:
-		return taunt(depth + 1) + " " + sentence()
+		return taunt(depth + 1) + " and " + sentence()
 	}
 	return ""
 }
