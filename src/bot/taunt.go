@@ -121,3 +121,11 @@ func Taunt(input string) string {
 	}
 	return taunt(0);
 }
+
+type TauntRules struct {
+	smth int64
+}
+
+func LoadLangs() []TauntRules {
+	return nil
+}

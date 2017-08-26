@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"time"
 	"math/rand"
-	"net/http"
 	"io/ioutil"
 	"encoding/json"
 	"telegram"
-	"bytes"
 )
 
 type Config struct {
-	BotAPIToken string
-	LastUpdateId int64
+	TauntBotConf telegram.BotConfig
 }
 
 var AppConfig Config
@@ -25,60 +22,13 @@ const (
 	ShrugCommand
 )
 
-func Telegram_GetUpdates_HTTP() []telegram.Update {
-	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d", AppConfig.BotAPIToken, AppConfig.LastUpdateId + 1))
+// TODO: don't answer to too old messages
+func process_updates(bot_state* telegram.BotState) {
+	updates, err := telegram.GetUpdates(&AppConfig.TauntBotConf, bot_state)
 	if err != nil {
-		fmt.Println("Error on /getUpdates request:", err)
-	} else {
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(body))
-		var parsed_response telegram.UpdateResponse
-		if err := json.Unmarshal(body, &parsed_response); err != nil {
-			panic(err)
-		}
-		printed, _ := json.Marshal(parsed_response)
-		fmt.Println(string(printed))
-		fmt.Println("parsed_response: ", parsed_response)
-		return parsed_response.Result
+		fmt.Println("GetUpdates failed with error: %v", err)
+		return
 	}
-	var updates []telegram.Update
-	return updates
-}
-
-func Telegram_SendMessage(message telegram.OutgoingMessage) bool { 
-	data, _ := json.Marshal(message)
-	resp, err := http.Post("https://api.telegram.org/bot" + AppConfig.BotAPIToken + "/sendMessage", "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		fmt.Println("Error on /sendMessage request:", err)		
-	} else {
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("Response: " + string(body))
-		return true
-	}
-	return false
-}
-
-func Telegram_GetUpdates_Test() []telegram.Update {
-	var updates []telegram.Update
-	var update telegram.Update
-	update.Update_id = 1
-	var msg telegram.Message
-	msg.Message_id = 1
-	msg.Text = "/shrug"
-	update.Message = msg
-	updates = append(updates, update)
-	return updates
-}
-
-func Telegram_GetUpdates() []telegram.Update {
-	// return Telegram_GetUpdates_Test()
-	return Telegram_GetUpdates_HTTP()
-}
-
-func process_updates() {
-	updates := Telegram_GetUpdates()
 	printed, _ := json.Marshal(updates)
 	fmt.Println(string(printed))
 	if len(updates) > 0 {
@@ -99,27 +49,36 @@ func process_updates() {
 			}
 			if response != "" {
 				fmt.Println("Sending response: ", response)
-				ok := Telegram_SendMessage(telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
-				if !ok {
+				err := telegram.SendMessage(&AppConfig.TauntBotConf, telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
+				if err != nil {
+					fmt.Println("SendMessage failed with error: %v", err)
 					return
 				} else {
-					AppConfig.LastUpdateId = msg.Update_id
+					bot_state.LastUpdateId = msg.Update_id
 				}
+			} else {
+				bot_state.LastUpdateId = msg.Update_id
 			}
 		}
 	}
-
 }
 
 func main() {
 	// init
 	rand.Seed(time.Now().UnixNano())
-	config_raw, _ := ioutil.ReadFile("config.json")
+	fmt.Println(Taunt("hi bot"))
+	fmt.Println(Taunt("the holy grail"))
+
+	config_raw, _ := ioutil.ReadFile("etc/config.json")
 	if err := json.Unmarshal(config_raw, &AppConfig); err != nil {
 		panic(err)
 	}
-	fmt.Println(AppConfig)
-	process_updates();
-	updated_config, _ := json.Marshal(AppConfig)
-	ioutil.WriteFile("config.json", updated_config, 0644)
+	restored_state_raw, _ := ioutil.ReadFile(AppConfig.TauntBotConf.StateFile)
+	var bot_state telegram.BotState
+	if err := json.Unmarshal(restored_state_raw, &bot_state); err != nil {
+		bot_state.LastUpdateId = AppConfig.TauntBotConf.StartUpdateId
+	}
+	// process_updates();
+	updated_state, _ := json.Marshal(bot_state)
+	ioutil.WriteFile(AppConfig.TauntBotConf.StateFile, updated_state, 0644)
 }
