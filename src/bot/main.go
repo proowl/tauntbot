@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"telegram"
+	"strings"
 )
 
 type Config struct {
@@ -22,41 +23,41 @@ const (
 	ShrugCommand
 )
 
+func log(format string, smth ...interface{}) {
+	fmt.Printf("[%v] " + format + "\n", time.Now(), smth)
+}
+
 // TODO: don't answer to too old messages
 func process_updates(grammars* GrammarRules, bot_state* telegram.BotState) {
 	updates, err := telegram.GetUpdates(&AppConfig.TauntBotConf, bot_state)
 	if err != nil {
-		fmt.Println("GetUpdates failed with error: %v", err)
+		log("GetUpdates failed with error: %v", err)
 		return
 	}
 	if len(updates) > 0 {
-		fmt.Printf("Received %d updates\n", len(updates))
+		log("Received %d updates", len(updates))
 		for _, msg := range updates {
 			printed, _ := json.Marshal(msg)
 			fmt.Println(string(printed))
 			// todo: change to regex match instead full string match
 			var response string
-			switch msg.Message.Text {
+			command := strings.Split(msg.Message.Text, "@")[0]
+			switch command {
 				case "/shrug":
 					response = "¯\\_(ツ)_/¯"
-				// case "/taunt":
-				default:
+				case "/taunt":
 					response = Taunt(grammars, "eng", msg.Message.Text)
-				// default:
-				// 	fmt.Println(":: ignore")
+				default:
+					// ignore
 			}
 			if response != "" {
-				fmt.Println("Sending response: ", response)
+				log("Sending response: %v", response)
 				err := telegram.SendMessage(&AppConfig.TauntBotConf, telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
 				if err != nil {
-					fmt.Println("SendMessage failed with error: %v", err)
-					return
-				} else {
-					bot_state.LastUpdateId = msg.Update_id
+					log("SendMessage failed with error: %v", err)
 				}
-			} else {
-				bot_state.LastUpdateId = msg.Update_id
 			}
+			bot_state.LastUpdateId = msg.Update_id
 		}
 	}
 }
