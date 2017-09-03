@@ -23,14 +23,12 @@ const (
 )
 
 // TODO: don't answer to too old messages
-func process_updates(bot_state* telegram.BotState) {
+func process_updates(grammars* GrammarRules, bot_state* telegram.BotState) {
 	updates, err := telegram.GetUpdates(&AppConfig.TauntBotConf, bot_state)
 	if err != nil {
 		fmt.Println("GetUpdates failed with error: %v", err)
 		return
 	}
-	printed, _ := json.Marshal(updates)
-	fmt.Println(string(printed))
 	if len(updates) > 0 {
 		fmt.Printf("Received %d updates\n", len(updates))
 		for _, msg := range updates {
@@ -43,7 +41,7 @@ func process_updates(bot_state* telegram.BotState) {
 					response = "¯\\_(ツ)_/¯"
 				// case "/taunt":
 				default:
-					response = Taunt(msg.Message.Text)
+					response = Taunt(grammars, "eng", msg.Message.Text)
 				// default:
 				// 	fmt.Println(":: ignore")
 			}
@@ -65,10 +63,8 @@ func process_updates(bot_state* telegram.BotState) {
 
 func main() {
 	// init
+	grammars := LoadLangs("etc/taunt")
 	rand.Seed(time.Now().UnixNano())
-	fmt.Println(Taunt("hi bot"))
-	fmt.Println(Taunt("the holy grail"))
-
 	config_raw, _ := ioutil.ReadFile("etc/config.json")
 	if err := json.Unmarshal(config_raw, &AppConfig); err != nil {
 		panic(err)
@@ -78,7 +74,7 @@ func main() {
 	if err := json.Unmarshal(restored_state_raw, &bot_state); err != nil {
 		bot_state.LastUpdateId = AppConfig.TauntBotConf.StartUpdateId
 	}
-	// process_updates();
+	process_updates(&grammars, &bot_state)
 	updated_state, _ := json.Marshal(bot_state)
 	ioutil.WriteFile(AppConfig.TauntBotConf.StateFile, updated_state, 0644)
 }
