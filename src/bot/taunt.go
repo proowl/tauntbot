@@ -36,7 +36,7 @@ type GrammarRules struct {
 	rules map[string]Grammar
 }
 
-func taunt_by_grammar(grammar Grammar, name string) string {
+func (grammar Grammar) taunt(name string) string {
 	paths := grammar.rules[name]
 
 	rand_num := rand.Int()
@@ -45,7 +45,7 @@ func taunt_by_grammar(grammar Grammar, name string) string {
 	var result string
 	for _, token := range path {
 		if token.is_token {
-			result += taunt_by_grammar(grammar, token.name)
+			result += grammar.taunt(token.name)
 		} else {
 			result += token.name
 		}
@@ -53,12 +53,12 @@ func taunt_by_grammar(grammar Grammar, name string) string {
 	return result
 }
 
-func Taunt(grammars* GrammarRules, lang string, input string) string {
+func (grammars* GrammarRules) Taunt(lang string, input string) string {
 	phrase := strings.ToLower(input)
 	if (holy_grail_mentioned(phrase)) {
 		return "(A childish hand gesture)."
 	}
-	return taunt_by_grammar(grammars.rules[lang], "<taunt>")
+	return grammars.rules[lang].taunt("<taunt>")
 }
 
 func parse_grammar(filename string) *Grammar {
@@ -72,41 +72,34 @@ func parse_grammar(filename string) *Grammar {
 	}
 	defer file.Close()
 
-	split_re := regexp.MustCompile(`::=|\|`)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line[0] == '#' {
 			continue
 		}
-		splitted := split_re.Split(line, -1)
+		splitted := strings.Split(line, " ::= ")
 		from := splitted[0]
-		raw_to := splitted[1:]
-		for _,val := range raw_to {
+		raw_to := splitted[1]
+		for _,val := range strings.Split(raw_to, " | ") {
 			var istart,iend int
 			istart = 0
 			var to []Token
 			for iend = range val {
 				if val[iend] == '<' {
 					if istart < iend {
-						var token Token
-						token.name = val[istart:iend]
-						token.is_token = false
-						to = append(to, token)
+						to = append(to, Token{val[istart:iend], false})
 						istart = iend
 					}
 				} else if val[iend] == '>' {
 					if istart < iend {
-						var token Token
-						token.name = val[istart:iend+1]
-						token.is_token = true
-						to = append(to, token)
+						to = append(to, Token{val[istart:iend+1], true})
 						istart = iend+1
 					}
 				}
 			}
 			if istart <= iend {
-				to = append(to, Token{name: val[istart:iend+1], is_token:false})
+				to = append(to, Token{val[istart:iend+1], false})
 			}
 			grammar.rules[from] = append(grammar.rules[from], to)
 		}

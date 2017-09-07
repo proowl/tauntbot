@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	TauntBotConf telegram.BotConfig
+	SilentProcessing bool
 }
 
 var AppConfig Config
@@ -27,7 +28,6 @@ func log(format string, smth ...interface{}) {
 	fmt.Printf("[%v] " + format + "\n", time.Now(), smth)
 }
 
-// TODO: don't answer to too old messages
 func process_updates(grammars* GrammarRules, bot_state* telegram.BotState) {
 	updates, err := telegram.GetUpdates(&AppConfig.TauntBotConf, bot_state)
 	if err != nil {
@@ -46,15 +46,17 @@ func process_updates(grammars* GrammarRules, bot_state* telegram.BotState) {
 				case "/shrug":
 					response = "¯\\_(ツ)_/¯"
 				case "/taunt":
-					response = Taunt(grammars, "eng", msg.Message.Text)
+					response = grammars.Taunt("eng", msg.Message.Text)
 				default:
 					// ignore
 			}
 			if response != "" {
 				log("Sending response: %v", response)
-				err := telegram.SendMessage(&AppConfig.TauntBotConf, telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
-				if err != nil {
-					log("SendMessage failed with error: %v", err)
+				if !AppConfig.SilentProcessing {
+					err := telegram.SendMessage(&AppConfig.TauntBotConf, telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
+					if err != nil {
+						log("SendMessage failed with error: %v", err)
+					}
 				}
 			}
 			bot_state.LastUpdateId = msg.Update_id
@@ -75,7 +77,11 @@ func main() {
 	if err := json.Unmarshal(restored_state_raw, &bot_state); err != nil {
 		bot_state.LastUpdateId = AppConfig.TauntBotConf.StartUpdateId
 	}
+
+	// run
 	process_updates(&grammars, &bot_state)
+
+	// save state
 	updated_state, _ := json.Marshal(bot_state)
 	ioutil.WriteFile(AppConfig.TauntBotConf.StateFile, updated_state, 0644)
 }
