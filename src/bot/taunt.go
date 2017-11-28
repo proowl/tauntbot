@@ -75,6 +75,9 @@ func parse_grammar(filename string) *Grammar {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+		if len(line) == 0 {
+			continue
+		}
 		if line[0] == '#' {
 			continue
 		}
