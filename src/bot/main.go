@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"telegram"
 	"strings"
+	"regexp"
 	"os"
 )
 
@@ -47,14 +48,19 @@ func run_taunt_bot(grammars* GrammarRules, bot_state* telegram.BotState) {
 			fmt.Println(string(printed))
 			if msg.Message.Message_id > 0 {
 				var response string
-				command := strings.Split(msg.Message.Text, "@")[0]
-				switch command {
-					case "/shrug":
-						response = "¯\\_(ツ)_/¯"
-					case "/taunt":
-						response = grammars.Taunt("eng", msg.Message.Text)
-					// default:
-					// 	response = grammars.Taunt("eng", msg.Message.Text)
+				split_re := regexp.MustCompile("[\\s\\.,!?@]")
+				splitted := split_re.Split(msg.Message.Text, -1)
+				for _, command := range splitted {
+					switch command {
+						case "/shrug":
+							response = "¯\\_(ツ)_/¯"
+							break;
+						case "/taunt":
+							response = grammars.Taunt("eng", msg.Message.Text)
+							break;
+						// default:
+						// 	response = grammars.Taunt("eng", msg.Message.Text)
+					}
 				}
 				if response != "" {
 					log("Sending response: %v to %v", response, msg.Message.Chat.Id)
