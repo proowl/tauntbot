@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 	"math/rand"
 	"io/ioutil"
@@ -27,22 +28,14 @@ const (
 	ShrugCommand
 )
 
-func log(format string, smth ...interface{}) {
-	if len(smth) > 0 {
-		fmt.Printf("[%v] " + format + "\n", time.Now(), smth)
-	} else {
-		fmt.Printf("[%v] " + format + "\n", time.Now())
-	}
-}
-
-func run_taunt_bot(grammars* GrammarRules, bot_state* telegram.BotState) {
+func taunt_bot_iter(grammars* GrammarRules, bot_state* telegram.BotState) {
 	updates, err := telegram.GetUpdates(&AppConfig.TauntBotConf, bot_state)
 	if err != nil {
-		log("GetUpdates failed with error: %v", err)
+		log.Printf("GetUpdates failed with error: %v", err)
 		return
 	}
 	if len(updates) > 0 {
-		log("Received %d updates", len(updates))
+		log.Printf("Received %d updates", len(updates))
 		for _, msg := range updates {
 			printed, _ := json.Marshal(msg)
 			fmt.Println(string(printed))
@@ -63,11 +56,11 @@ func run_taunt_bot(grammars* GrammarRules, bot_state* telegram.BotState) {
 					}
 				}
 				if response != "" {
-					log("Sending response: %v to %v", response, msg.Message.Chat.Id)
+					log.Printf("Sending response: %v to %v", response, msg.Message.Chat.Id)
 					if !AppConfig.SilentProcessing {
 						err := telegram.SendMessage(&AppConfig.TauntBotConf, telegram.OutgoingMessage{ChatId: msg.Message.Chat.Id, Text: response, DisableNotification: true})
 						if err != nil {
-							log("SendMessage failed with error: %v", err)
+							log.Printf("SendMessage failed with error: %v", err)
 						}
 					}
 				}
@@ -115,12 +108,22 @@ func run_taunt_bot(grammars* GrammarRules, bot_state* telegram.BotState) {
 							Results: results,
 						})
 					if err != nil {
-						log("SendInlineQueryResults failed with error: %v", err)
+						log.Printf("SendInlineQueryResults failed with error: %v", err)
 					}
 				}
 			}
 			bot_state.LastUpdateId = msg.Update_id
 		}
+	}
+}
+
+func run_taunt_bot(grammars* GrammarRules, bot_state* telegram.BotState) {
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		<- ticker.C
+		taunt_bot_iter(grammars, bot_state)
+		taunt_updated_state, _ := json.Marshal(bot_state)
+		ioutil.WriteFile(AppConfig.TauntBotConf.StateFile, taunt_updated_state, 0644)
 	}
 }
 
@@ -148,8 +151,4 @@ func main() {
 	taunt_bot_state := telegram.RestoreBotState(AppConfig.TauntBotConf.StateFile, AppConfig.TauntBotConf.StartUpdateId)
 
 	run_taunt_bot(&grammars, &taunt_bot_state)
-
-	// save state
-	taunt_updated_state, _ := json.Marshal(taunt_bot_state)
-	ioutil.WriteFile(AppConfig.TauntBotConf.StateFile, taunt_updated_state, 0644)
 }
