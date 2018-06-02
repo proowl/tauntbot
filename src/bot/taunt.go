@@ -61,14 +61,13 @@ func (grammars* GrammarRules) Taunt(lang string, input string) string {
 	return grammars.rules[lang].taunt("<taunt>")
 }
 
-func parse_grammar(filename string) *Grammar {
+func parse_grammar(filename string) (*Grammar, error) {
 	var grammar Grammar
 	grammar.rules = make(map[string][][]Token)
 
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Printf("error parsing file '%s': %v\n", filename, err)
-		return nil
+		return nil, fmt.Errorf("error parsing file '%s': %v", filename, err)
 	}
 	defer file.Close()
 
@@ -107,24 +106,28 @@ func parse_grammar(filename string) *Grammar {
 			grammar.rules[from] = append(grammar.rules[from], to)
 		}
 	}
-	return &grammar
+	return &grammar, nil
 }
 
-func LoadLangs(folder string) GrammarRules {
+func LoadLangs(folder string) (*GrammarRules, error) {
 	var grammars GrammarRules
 	grammars.rules = make(map[string]Grammar)
 
 	grammar_file_re := regexp.MustCompile(`rules\.([a-zA-Z]+)$`)
-	files, _ := ioutil.ReadDir(folder)
+	files, err := ioutil.ReadDir(folder)
+	if err != nil {
+		return nil, err
+	}
 	for _, file := range files {
 		groups := grammar_file_re.FindStringSubmatch(file.Name())
 		if len(groups) > 0 {
 			lang := groups[1]
-			new_grammar := parse_grammar(folder + "/" + file.Name())
-			if new_grammar != nil {
-				grammars.rules[lang] = *new_grammar
+			new_grammar, err := parse_grammar(folder + "/" + file.Name())
+			if err != nil {
+				return nil, err
 			}
+			grammars.rules[lang] = *new_grammar
 		}
 	}
-	return grammars
+	return &grammars, nil
 }

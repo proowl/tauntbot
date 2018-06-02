@@ -114,7 +114,6 @@ func SendMessage(config* BotConfig, message OutgoingMessage) error {
 
 func SendInlineQueryResults(config* BotConfig, message OutgoingInlineQuery) error {
 	data, _ := json.Marshal(message)
-	fmt.Println(string(data))
 	resp, err := http.Post(fmt.Sprintf("%s/bot%s/answerInlineQuery", config.Host, config.ApiToken), "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("POST /answerInlineQuery: %v", err)
