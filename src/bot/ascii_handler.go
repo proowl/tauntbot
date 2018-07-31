@@ -21,5 +21,8 @@ func (this *AsciiSmileys)process(command Command) Action {
 }
 
 func (this *AsciiSmileys)processInline(command Command) []InlineQueryResponse {
-	return []InlineQueryResponse{ InlineQueryResponse{title: "¯\\_(ツ)_/¯", value:"¯\\_(ツ)_/¯", cacheTime: 300} }
+	return []InlineQueryResponse{
+		InlineQueryResponse{title: "¯\\_(ツ)_/¯", value:"¯\\_(ツ)_/¯", cacheTime: 300},
+		InlineQueryResponse{title: "( ͡° ͜ʖ ͡°)", value:"( ͡° ͜ʖ ͡°)", cacheTime: 300},
+	}
 }
