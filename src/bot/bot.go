@@ -63,7 +63,7 @@ type Bot struct {
 func newBot(appConfig *Config) *Bot {
 	var this Bot
 	this.config = appConfig
-	this.commandRegexp = regexp.MustCompile(`/(\w+)`)
+	this.commandRegexp = regexp.MustCompile(`/(\w+)[^\w]*`)
 
 	grammars, err := LoadLangs(appConfig.GrammarsPath)
 	if err != nil {
