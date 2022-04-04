@@ -29,6 +29,7 @@ type Token struct {
 }
 
 type Grammar struct {
+	lang string
 	rules map[string][][]Token
 }
 
@@ -36,8 +37,19 @@ type GrammarRules struct {
 	rules map[string]Grammar
 }
 
-func (grammar Grammar) taunt(name string) string {
-	paths := grammar.rules[name]
+func (gr *GrammarRules) FindGrammar(lang string) *Grammar {
+	if g, found := gr.rules[lang]; !found {
+		panic(fmt.Sprintf("Unknown lang %v", lang))
+	} else {
+		return &g
+	}
+}
+
+func (g *Grammar) taunt(name string) string {
+	paths := g.rules[name]
+	if len(paths) == 0 {
+		return ""
+	}
 
 	rand_num := rand.Int()
 	path := paths[rand_num % len(paths)]
@@ -45,7 +57,7 @@ func (grammar Grammar) taunt(name string) string {
 	var result string
 	for _, token := range path {
 		if token.is_token {
-			result += grammar.taunt(token.name)
+			result += g.taunt(token.name)
 		} else {
 			result += token.name
 		}
@@ -53,12 +65,19 @@ func (grammar Grammar) taunt(name string) string {
 	return result
 }
 
-func (grammars* GrammarRules) Taunt(lang string, input string) string {
+func (g* Grammar) Taunt(input string) string {
 	phrase := strings.ToLower(input)
 	if (holy_grail_mentioned(phrase)) {
+		return g.holy_grail()
+	}
+	return g.taunt("<taunt>")
+}
+
+func (g* Grammar) holy_grail() string {
+	if g.lang == "eng" {
 		return "(A childish hand gesture)."
 	}
-	return grammars.rules[lang].taunt("<taunt>")
+	return "!!23li7s8i32u!12!!!1"
 }
 
 func parse_grammar(filename string) (*Grammar, error) {
@@ -83,25 +102,30 @@ func parse_grammar(filename string) (*Grammar, error) {
 		splitted := strings.Split(line, " ::= ")
 		from := splitted[0]
 		raw_to := splitted[1]
-		for _,val := range strings.Split(raw_to, " | ") {
-			var istart,iend int
-			istart = 0
+		for _, val := range strings.Split(raw_to, " | ") {
 			var to []Token
-			for iend = range val {
-				if val[iend] == '<' {
-					if istart < iend {
-						to = append(to, Token{val[istart:iend], false})
-						istart = iend
+			tmp := ""
+			started := false
+			for _, c := range val {
+				if c == '<' {
+					if started {
+						to = append(to, Token{tmp, false})
 					}
-				} else if val[iend] == '>' {
-					if istart < iend {
-						to = append(to, Token{val[istart:iend+1], true})
-						istart = iend+1
-					}
+					tmp = ""
+					started = true
+				} else if c == '>' {
+					to = append(to, Token{fmt.Sprintf("<%s>", tmp), true})
+					tmp = ""
+					started = true
+				} else if c == ' ' && started {
+					tmp = tmp + string(c)
+				} else {
+					started = true
+					tmp = tmp + string(c)
 				}
 			}
-			if istart <= iend {
-				to = append(to, Token{val[istart:iend+1], false})
+			if tmp != "" {
+				to = append(to, Token{tmp, false})
 			}
 			grammar.rules[from] = append(grammar.rules[from], to)
 		}
@@ -126,6 +150,7 @@ func LoadLangs(folder string) (*GrammarRules, error) {
 			if err != nil {
 				return nil, err
 			}
+			new_grammar.lang = lang
 			grammars.rules[lang] = *new_grammar
 		}
 	}

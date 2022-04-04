@@ -1,0 +1,15 @@
+<taunt> ::= <sentence> | <noun>!
+<sentence> ::= <past-rel> <noun-phrase> | <present-rel> <noun-phrase> | <past-rel> <article> <noun>
+<noun-phrase> ::= <article> <modified-noun>
+<modified-noun> ::= <noun> | <modifier> <noun>
+<modifier> ::= <adjective> | <adverb> <adjective>
+<present-rel> ::= your <present-person> <present-verb>
+<past-rel> ::= your <past-person> <past-verb>
+<present-person> ::= steed | king | first-born
+<past-person> ::= mother | father | grandmother | grandfather | godfather
+<noun> ::= hamster | coconut | duck | herring | newt | peril | chicken | vole | parrot | mouse | twit
+<present-verb> ::= is | masquerades as
+<past-verb> ::= was | personified
+<article> ::= a
+<adjective> ::= silly | wicked | sordid | naughty | repulsive | malodorous | ill-tempered
+<adverb> ::= conspicuously | categorically | positively | cruelly | incontrovertibly

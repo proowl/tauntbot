@@ -70,15 +70,22 @@ func newBot(appConfig *Config) *Bot {
 		panic(err)
 	}
 	this.handlers = make(map[string]HandlerInterface)
-	this.handlers["taunt"] = newTauntGenerator(grammars)
-	this.handlers[""] = newAsciiSmileys(appConfig.SmileysConf)
+	this.handlers["taunt"] = newTauntGenerator(grammars.FindGrammar("eng"))
+	this.handlers["tauntru"] = newTauntGenerator(grammars.FindGrammar("ru"))
+	this.handlers["shrug"] = newAsciiSmileys(appConfig.SmileysConf)
+	// todo: add more ascii handlers
 
 	this.state = telegram.RestoreBotState(appConfig.BotConf.StateFile, appConfig.BotConf.StartUpdateId)
+	if appConfig.Debug {
+		log.Printf("%+v", grammars.FindGrammar("ru"))
+		log.Printf("'''%s'''", grammars.FindGrammar("ru").Taunt("<taunt>"))
+	}
 	return &this
 }
 
 func (this *Bot)start() {
 	ticker := time.NewTicker(1 * time.Second)
+	log.Print("Listening...")
 	for {
 		<- ticker.C
 		this.iter()
@@ -88,7 +95,9 @@ func (this *Bot)start() {
 
 func (this *Bot)dumpState() {
 	updatedState, _ := json.Marshal(this.state)
-	ioutil.WriteFile(this.config.BotConf.StateFile, updatedState, 0644)
+	if err := ioutil.WriteFile(this.config.BotConf.StateFile, updatedState, 0644); err != nil {
+		log.Printf("Error writing state: %v", err)
+	}
 }
 
 func (this *Bot)iter() {
@@ -116,8 +125,6 @@ func (this *Bot)processAsyncCommand(update *telegram.Update) {
 		command := matched[1]
 		if handler,found := this.handlers[command]; found {
 			this.doAction( handler.process( Command{ command: command, text: update.Message.Text } ), update )
-		} else {
-			this.doAction( this.handlers[""].process( Command{ command: command, text: update.Message.Text } ), update )
 		}
 	}
 }
