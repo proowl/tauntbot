@@ -1,0 +1,11 @@
+{
+    "BotConf": {
+        "ApiToken": "<api-token-from-telegram>",
+        "Host": "https://api.telegram.org",
+        "StartUpdateId": 0,
+        "StateFile": "var/state.json"
+    },
+    "SilentProcessing" : false,
+    "GrammarsPath": "etc/taunt",
+    "Debug": true
+}
